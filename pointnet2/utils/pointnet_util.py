@@ -35,8 +35,8 @@ def sample_and_group(npoint, radius, nsample, xyz, points, knn=False, use_xyz=Tr
         grouped_xyz: (batch_size, npoint, nsample, 3) TF tensor, normalized point XYZs
             (subtracted by seed point XYZ) in local regions
     '''
-
-    new_xyz = gather_point(xyz, farthest_point_sample(npoint, xyz)) # (batch_size, npoint, 3)
+    sample_idx = farthest_point_sample(npoint, xyz)
+    new_xyz = gather_point(xyz, sample_idx) # (batch_size, npoint, 3)
     if knn:
         _,idx = knn_point(nsample, xyz, new_xyz)
     else:
@@ -52,7 +52,7 @@ def sample_and_group(npoint, radius, nsample, xyz, points, knn=False, use_xyz=Tr
     else:
         new_points = grouped_xyz
 
-    return new_xyz, new_points, idx, grouped_xyz
+    return new_xyz, new_points, sample_idx, grouped_xyz
 
 
 def sample_and_group_all(xyz, points, use_xyz=True):
@@ -211,6 +211,7 @@ def pointnet_fp_module(xyz1, xyz2, points1, points2, mlp, is_training, bn_decay,
         dist = tf.maximum(dist, 1e-10)
         norm = tf.reduce_sum((1.0/dist),axis=2,keep_dims=True)
         norm = tf.tile(norm,[1,1,3])
+
         weight = (1.0/dist) / norm
         interpolated_points = three_interpolate(points2, idx, weight)
 
